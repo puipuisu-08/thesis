@@ -37,7 +37,7 @@ def data_provider(args, flag, type='source', index=0):
         data_path = 'target.csv'
 
     data_set = Data(
-        root_path=args.root_path,
+        root_path='./dataset/',
         data_path=data_path,
         flag=flag,
         size=[args.seq_len, args.label_len, args.pred_len],
