@@ -10,7 +10,7 @@ data_dict = {
 }
 
 
-def data_provider(args, flag):
+def data_provider(args, flag, type='source', index=0):
     Data = data_dict[args.data]
     timeenc = 0 if args.embed != 'timeF' else 1
 
@@ -31,9 +31,14 @@ def data_provider(args, flag):
         batch_size = args.batch_size
         freq = args.freq
 
+    if type == 'source':
+        data_path = f'source_{index}.csv'
+    elif type == 'target':
+        data_path = 'target.csv'
+
     data_set = Data(
         root_path=args.root_path,
-        data_path=args.data_path,
+        data_path=data_path,
         flag=flag,
         size=[args.seq_len, args.label_len, args.pred_len],
         features=args.features,

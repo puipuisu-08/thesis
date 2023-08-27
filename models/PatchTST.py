@@ -75,7 +75,7 @@ class Model(nn.Module):
                                   pe=pe, learn_pe=learn_pe, fc_dropout=fc_dropout, head_dropout=head_dropout, padding_patch = padding_patch,
                                   pretrain_head=pretrain_head, head_type=head_type, individual=individual, revin=revin, affine=affine,
                                   subtract_last=subtract_last, verbose=verbose, **kwargs)
-    
+        self.flatten = nn.Flatten(start_dim=-2)
     
     def forward(self, x):           # x: [Batch, Input length, Channel]
         if self.decomposition:
@@ -86,7 +86,8 @@ class Model(nn.Module):
             x = res + trend
             x = x.permute(0,2,1)    # x: [Batch, Input length, Channel]
         else:
-            x = x.permute(0,2,1)    # x: [Batch, Channel, Input length]
-            x = self.model(x)
+            x = x.permute(0,2,1)    # x: [Batch, Channel, Input length]; enc_x: [Batch, Channel, D_Model, Patch_Num]
+            x, enc_x = self.model(x)
+            enc_x = self.flatten(enc_x) # enc_x: [Batch, Channel, D_Model * Patch_Num]
             x = x.permute(0,2,1)    # x: [Batch, Input length, Channel]
-        return x
+        return x, enc_x

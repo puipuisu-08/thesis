@@ -20,7 +20,12 @@ if __name__ == '__main__':
     # data loader
     parser.add_argument('--data', type=str, required=True, default='ETTm1', help='dataset type')
     parser.add_argument('--root_path', type=str, default='./data/ETT/', help='root path of the data file')
-    parser.add_argument('--data_path', type=str, default='ETTh1.csv', help='data file')
+    
+    parser.add_argument('--domain_classifier', type=str, default='DANN_Default', help='domain classifier type, options:[DANN_Default, DANN_AdaTime]')
+    parser.add_argument('--source_path', type=str, default='electricity.csv', help='source data file')
+    parser.add_argument('--target_path', type=str, default='weather.csv', help='target data file')
+    parser.add_argument('--num_sources', type=int, default=1, help='number of source domains')
+
     parser.add_argument('--features', type=str, default='M',
                         help='forecasting task, options:[M, S, MS]; M:multivariate predict multivariate, S:univariate predict univariate, MS:multivariate predict univariate')
     parser.add_argument('--target', type=str, default='OT', help='target feature in S or MS task')
