@@ -3,8 +3,8 @@ import os
 import gc
 
 def splitter(args):
-    source_raw = pd.read_csv(os.path.join('./dataset/', args.source_path))
-    target_raw = pd.read_csv(os.path.join('./dataset/', args.target_path))
+    source_raw = pd.read_csv(os.path.join(args.root_path, args.source_path))
+    target_raw = pd.read_csv(os.path.join(args.root_path, args.target_path))
 
     size = target_raw.shape[0]
     for i in range(args.num_sources):
