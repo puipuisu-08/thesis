@@ -56,8 +56,7 @@ class Exp_Main(Exp_Basic):
         return data_set, data_loader
 
     def _select_optimizer(self):
-        model_optim = optim.Adam([{'params':self.model.parameters(),
-                                   'params':self.domain_classifier.parameters()}], lr=self.args.learning_rate)
+        model_optim = optim.Adam([{'params':self.model.parameters()}], lr=self.args.learning_rate)
         return model_optim
 
     def _select_criterion(self):
@@ -265,7 +264,7 @@ class Exp_Main(Exp_Basic):
                                 
                             else:
                                 outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark, batch_y)
-                        # print(outputs.shape,batch_y.shape)
+
                         f_dim = -1 if self.args.features == 'MS' else 0
                         outputs = outputs[:, -self.args.pred_len:, f_dim:]
                         batch_y = batch_y[:, -self.args.pred_len:, f_dim:].to(self.device)
@@ -280,7 +279,7 @@ class Exp_Main(Exp_Basic):
                     total_loss = loss + domain_loss
                     train_loss.append(total_loss.item())
 
-                    if (i + 1) % 10 == 0:
+                    if (i + 1) % 50 == 0:
                         print("\titers: {0}, epoch: {1} | TST Loss: {2:.7f} | Domain Loss: {3:.7f}".format(i + 1, epoch + 1, loss.item(), domain_loss.item()))
                         speed = (time.time() - time_now) / iter_count
                         left_time = speed * ((self.args.train_epochs - epoch) * train_steps - i)
