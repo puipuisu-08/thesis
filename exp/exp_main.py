@@ -58,6 +58,10 @@ class Exp_Main(Exp_Basic):
     def _select_optimizer(self):
         model_optim = optim.Adam([{'params':self.model.parameters()}], lr=self.args.learning_rate)
         return model_optim
+    
+    def _select_domain_optimizer(self):
+        domain_optim = optim.Adam([{'params':self.domain_classifier.parameters()}], lr=self.args.learning_rate)
+        return domain_optim
 
     def _select_criterion(self):
         criterion = nn.MSELoss()
@@ -169,6 +173,7 @@ class Exp_Main(Exp_Basic):
         early_stopping = EarlyStopping(patience=self.args.patience, verbose=True)
 
         model_optim = self._select_optimizer()
+        domain_optim = self._select_domain_optimizer()
 
         criterion = self._select_criterion()
         domain_criterion = self._select_domain_criterion()
@@ -193,15 +198,14 @@ class Exp_Main(Exp_Basic):
             for index in range(self.num_sources):
                 print('Training on source {}...'.format(index))
                 train_loader = source_train_loaders[index]
-                vali_loader = source_vali_loaders[index]
-                test_loader = source_test_loaders[index]
                 
                 i = 0
                 for batch_source, batch_target in zip(train_loader, target_loader):
                     iter_count += 1
                     model_optim.zero_grad()
+                    domain_optim.zero_grad()
 
-                    p = float(i + (index + epoch ) * len(train_loader))/self.args.train_epochs/len(train_loader)
+                    p = float(i + (index + epoch) * len(train_loader))/self.args.train_epochs/len(train_loader)
                     alpha = 2. / (1. + np.exp(-10 * p)) - 1
 
                     # source data
@@ -277,7 +281,7 @@ class Exp_Main(Exp_Basic):
                         domain_loss = domain_criterion(domain_outputs, domain_labels)
 
                     total_loss = loss + domain_loss
-                    train_loss.append(total_loss.item())
+                    train_loss.append(loss.item())
 
                     if (i + 1) % 50 == 0:
                         print("\titers: {0}, epoch: {1} | TST Loss: {2:.7f} | Domain Loss: {3:.7f}".format(i + 1, epoch + 1, loss.item(), domain_loss.item()))
@@ -294,6 +298,7 @@ class Exp_Main(Exp_Basic):
                     else:
                         total_loss.backward()
                         model_optim.step()
+                        domain_optim.step()
                         
                     if self.args.lradj == 'TST':
                         adjust_learning_rate(model_optim, scheduler, epoch + 1, self.args, printout=False)
@@ -342,8 +347,9 @@ class Exp_Main(Exp_Basic):
             os.makedirs(folder_path)
 
         self.model.eval()
+        self.domain_classifier.eval()
         with torch.no_grad():
-            for index in range(self.num_sources):
+            for index in range(1):
                 print('Testing on source {}...'.format(index))
                 test_loader = source_test_loaders[index]
 
@@ -434,8 +440,8 @@ class Exp_Main(Exp_Basic):
         if not os.path.exists(folder_path):
             os.makedirs(folder_path)
 
-        mae, mse, rmse, mape, mspe, rse, corr = metric(preds, trues)
-        print('mse:{}, mae:{}, rse:{}'.format(mse, mae, rse))
+        mae, mse, rmse, mape, mspe, rse, corr, r2 = metric(preds, trues)
+        print('mse:{}, mae:{}, rse:{}, r2:{}'.format(mse, mae, rse, r2))
         f = open("result.txt", 'a')
         f.write(setting + "  \n")
         f.write('mse:{}, mae:{}, rse:{}'.format(mse, mae, rse))
