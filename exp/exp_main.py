@@ -444,7 +444,7 @@ class Exp_Main(Exp_Basic):
         print('mse:{}, mae:{}, rse:{}, r2:{}'.format(mse, mae, rse, r2))
         f = open("result.txt", 'a')
         f.write(setting + "  \n")
-        f.write('mse:{}, mae:{}, rse:{}'.format(mse, mae, rse))
+        f.write('mse:{}, mae:{}, rse:{}, r2: {}'.format(mse, mae, rse, r2))
         f.write('\n')
         f.write('\n')
         f.close()

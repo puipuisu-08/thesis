@@ -11,10 +11,10 @@ class DANN_Default(nn.Module):
 
         self.head_nf = args.d_model * patch_num
 
-        self.fc1 = nn.Linear(self.head_nf, 128)
+        self.fc1 = nn.Linear(self.head_nf, 64)
         self.bn1 = nn.BatchNorm1d(args.enc_in)
         self.relu1 = nn.ReLU(True)
-        self.fc2 = nn.Linear(128, 2)
+        self.fc2 = nn.Linear(64, 2)
     
     def forward(self, x, alpha):
         reverse_feature = ReverseLayerF.apply(x, alpha)
