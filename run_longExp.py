@@ -25,6 +25,7 @@ if __name__ == '__main__':
     parser.add_argument('--source_path', type=str, default='electricity.csv', help='source data file')
     parser.add_argument('--target_path', type=str, default='weather.csv', help='target data file')
     parser.add_argument('--num_sources', type=int, default=1, help='number of source domains')
+    parser.add_argument('--num_features', type=int, default=321, help='number of features of source domains')
 
     parser.add_argument('--features', type=str, default='M',
                         help='forecasting task, options:[M, S, MS]; M:multivariate predict multivariate, S:univariate predict univariate, MS:multivariate predict univariate')

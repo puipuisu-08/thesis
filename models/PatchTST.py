@@ -45,6 +45,7 @@ class Model(nn.Module):
         decomposition = configs.decomposition
         kernel_size = configs.kernel_size
         
+        num_features = configs.num_features
         
         # model
         self.decomposition = decomposition
@@ -74,7 +75,7 @@ class Model(nn.Module):
                                   attn_mask=attn_mask, res_attention=res_attention, pre_norm=pre_norm, store_attn=store_attn,
                                   pe=pe, learn_pe=learn_pe, fc_dropout=fc_dropout, head_dropout=head_dropout, padding_patch = padding_patch,
                                   pretrain_head=pretrain_head, head_type=head_type, individual=individual, revin=revin, affine=affine,
-                                  subtract_last=subtract_last, verbose=verbose, **kwargs)
+                                  subtract_last=subtract_last, verbose=verbose, num_features=num_features, **kwargs)
         self.flatten = nn.Flatten(start_dim=-2)
     
     def forward(self, x):           # x: [Batch, Input length, Channel]

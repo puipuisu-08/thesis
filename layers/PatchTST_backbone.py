@@ -20,7 +20,7 @@ class PatchTST_backbone(nn.Module):
                  padding_var:Optional[int]=None, attn_mask:Optional[Tensor]=None, res_attention:bool=True, pre_norm:bool=False, store_attn:bool=False,
                  pe:str='zeros', learn_pe:bool=True, fc_dropout:float=0., head_dropout = 0, padding_patch = None,
                  pretrain_head:bool=False, head_type = 'flatten', individual = False, revin = True, affine = True, subtract_last = False,
-                 verbose:bool=False, **kwargs):
+                 verbose:bool=False, num_features:int=321, **kwargs):
         
         super().__init__()
         
@@ -42,7 +42,7 @@ class PatchTST_backbone(nn.Module):
                                 n_layers=n_layers, d_model=d_model, n_heads=n_heads, d_k=d_k, d_v=d_v, d_ff=d_ff,
                                 attn_dropout=attn_dropout, dropout=dropout, act=act, key_padding_mask=key_padding_mask, padding_var=padding_var,
                                 attn_mask=attn_mask, res_attention=res_attention, pre_norm=pre_norm, store_attn=store_attn,
-                                pe=pe, learn_pe=learn_pe, verbose=verbose, **kwargs)
+                                pe=pe, learn_pe=learn_pe, verbose=verbose, num_features=num_features, **kwargs)
 
         # Head
         self.head_nf = d_model * patch_num
@@ -85,7 +85,7 @@ class PatchTST_backbone(nn.Module):
     def create_pretrain_head(self, head_nf, vars, dropout):
         return nn.Sequential(nn.Dropout(dropout),
                     nn.Conv1d(head_nf, vars, 1)
-                    )
+                )
 
 
 class Flatten_Head(nn.Module):
@@ -131,21 +131,25 @@ class TSTiEncoder(nn.Module):  #i means channel-independent
                  n_layers=3, d_model=128, n_heads=16, d_k=None, d_v=None,
                  d_ff=256, norm='BatchNorm', attn_dropout=0., dropout=0., act="gelu", store_attn=False,
                  key_padding_mask='auto', padding_var=None, attn_mask=None, res_attention=True, pre_norm=False,
-                 pe='zeros', learn_pe=True, verbose=False, **kwargs):
+                 pe='zeros', learn_pe=True, verbose=False, num_features=321, **kwargs):
         
         
         super().__init__()
         
         self.patch_num = patch_num
         self.patch_len = patch_len
+        self.num_features = num_features
         
         # Input encoding
         q_len = patch_num
-        self.W_P = nn.Linear(patch_len, d_model)        # Eq 1: projection of feature vectors onto a d-dim vector space
+        self.source_W_P = nn.Linear(patch_len, d_model)        # Eq 1: projection of feature vectors onto a d-dim vector space
+        self.target_W_P = nn.Linear(patch_len, d_model)        # Eq 1: projection of feature vectors onto a d-dim vector space
+
         self.seq_len = q_len
 
         # Positional encoding
-        self.W_pos = positional_encoding(pe, learn_pe, q_len, d_model)
+        self.source_W_pos = positional_encoding(pe, learn_pe, q_len, d_model)
+        self.target_W_pos = positional_encoding(pe, learn_pe, q_len, d_model)
 
         # Residual dropout
         self.dropout = nn.Dropout(dropout)
@@ -160,10 +164,20 @@ class TSTiEncoder(nn.Module):  #i means channel-independent
         n_vars = x.shape[1]
         # Input encoding
         x = x.permute(0,1,3,2)                                                   # x: [bs x nvars x patch_num x patch_len]
-        x = self.W_P(x)                                                          # x: [bs x nvars x patch_num x d_model]
 
-        u = torch.reshape(x, (x.shape[0]*x.shape[1],x.shape[2],x.shape[3]))      # u: [bs * nvars x patch_num x d_model]
-        u = self.dropout(u + self.W_pos)                                         # u: [bs * nvars x patch_num x d_model]
+        source_x = x[:, :self.num_features, :, :]                                # source_x: [bs x num_features x patch_num x patch_len]
+        target_x = x[:, self.num_features:, :, :]                               # target_x: [bs x (nvars-num_features) x patch_num x patch_len]
+
+        source_x = self.source_W_P(source_x)                                     # x: [bs x source_vars x patch_num x d_model]
+        target_x = self.target_W_P(target_x)                                     # x: [bs x target_vars x patch_num x d_model]
+
+        source_x = source_x + self.source_W_pos                                                             # source_u: [bs x source_vars x patch_num x d_model]
+        target_x = target_x + self.target_W_pos                                                             # target_u: [bs x target_vars x patch_num x d_model]
+
+        x = torch.cat((source_x, target_x), dim=1)                               # u: [bs x nvars x patch_num x d_model]
+
+        u = torch.reshape(x, (x.shape[0]*x.shape[1], x.shape[2], x.shape[3]))
+        u = self.dropout(u)
 
         # Encoder
         z = self.encoder(u)                                                      # z: [bs * nvars x patch_num x d_model]
@@ -292,7 +306,7 @@ class _MultiheadAttention(nn.Module):
         self.res_attention = res_attention
         self.sdp_attn = _ScaledDotProductAttention(d_model, n_heads, attn_dropout=attn_dropout, res_attention=self.res_attention, lsa=lsa)
 
-        # Poject output
+        # Project output
         self.to_out = nn.Sequential(nn.Linear(n_heads * d_v, d_model), nn.Dropout(proj_dropout))
 
 
@@ -303,9 +317,12 @@ class _MultiheadAttention(nn.Module):
         if K is None: K = Q
         if V is None: V = Q
 
+        query = self.W_Q(Q)
+        key = self.W_K(K)
+
         # Linear (+ split in multiple heads)
-        q_s = self.W_Q(Q).view(bs, -1, self.n_heads, self.d_k).transpose(1,2)       # q_s    : [bs x n_heads x max_q_len x d_k]
-        k_s = self.W_K(K).view(bs, -1, self.n_heads, self.d_k).permute(0,2,3,1)     # k_s    : [bs x n_heads x d_k x q_len] - transpose(1,2) + transpose(2,3)
+        q_s = query.view(bs, -1, self.n_heads, self.d_k).transpose(1,2)             # q_s    : [bs x n_heads x max_q_len x d_k]
+        k_s = key.view(bs, -1, self.n_heads, self.d_k).permute(0,2,3,1)             # k_s    : [bs x n_heads x d_k x q_len] - transpose(1,2) + transpose(2,3)
         v_s = self.W_V(V).view(bs, -1, self.n_heads, self.d_v).transpose(1,2)       # v_s    : [bs x n_heads x q_len x d_v]
 
         # Apply Scaled Dot-Product Attention (multiple heads)
