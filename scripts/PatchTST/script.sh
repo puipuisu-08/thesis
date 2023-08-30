@@ -11,7 +11,7 @@ domain_classifier=DANN_Default
 
 root_path_name=/kaggle/input/patchtst-dataset/
 source_path_name=electricity_25K.csv
-target_path_name=weather_5K.csv
+target_path_name=weather_25K.csv
 model_id_name=v1
 data_name=custom
 
@@ -44,6 +44,6 @@ do
       --train_epochs 100\
       --patience 20\
       --num_workers 10\
-      --num_sources 5\
+      --num_sources 1\
       --itr 1 --batch_size 16 --learning_rate 0.0001
 done
