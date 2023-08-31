@@ -7,9 +7,10 @@ class Exp_Basic(object):
     def __init__(self, args):
         self.args = args
         self.device = self._acquire_device()
-        self.model, self.domain_classifier = self._build_model()
+        # self.model, self.domain_classifier = self._build_model()
+        self.model = self._build_model()
         self.model = self.model.to(self.device)
-        self.domain_classifier = self.domain_classifier.to(self.device)
+        # self.domain_classifier = self.domain_classifier.to(self.device)
 
     def _build_model(self):
         raise NotImplementedError
