@@ -5,6 +5,7 @@ from models import Informer, Autoformer, Transformer, DLinear, Linear, NLinear, 
 from models.DomainClassifier import DANN_Default, DANN_AdaTime
 from utils.tools import EarlyStopping, adjust_learning_rate, visual, test_params_flop
 from utils.metrics import metric
+from utils.loss import MMD_loss, CORAL, ConditionalEntropyLoss
 
 import numpy as np
 import torch
@@ -26,6 +27,9 @@ class Exp_Main(Exp_Basic):
         super(Exp_Main, self).__init__(args)
         splitter(self.args)
         self.num_sources = args.num_sources
+        self.mmd = MMD_loss()
+        self.coral = CORAL()
+        self.cond_ent = ConditionalEntropyLoss()
 
     def _build_model(self):
         model_dict = {
@@ -38,18 +42,19 @@ class Exp_Main(Exp_Basic):
             'PatchTST': PatchTST,
         }
 
-        domain_dict = {
-            'DANN_Default': DANN_Default,
-            'DANN_AdaTime': DANN_AdaTime,
-        }
+        # domain_dict = {
+        #     'DANN_Default': DANN_Default,
+        #     'DANN_AdaTime': DANN_AdaTime,
+        # }
 
         model = model_dict[self.args.model].Model(self.args).float()
-        domain_classifier = domain_dict[self.args.domain_classifier](self.args).float()
+        # domain_classifier = domain_dict[self.args.domain_classifier](self.args).float()
 
         if self.args.use_multi_gpu and self.args.use_gpu:
             model = nn.DataParallel(model, device_ids=self.args.device_ids)
-            domain_classifier = nn.DataParallel(domain_classifier, device_ids=self.args.device_ids)
-        return model, domain_classifier
+            # domain_classifier = nn.DataParallel(domain_classifier, device_ids=self.args.device_ids)
+        # return model, domain_classifier
+        return model
 
     def _get_data(self, flag, type='source', index=0):
         data_set, data_loader = data_provider(self.args, flag, type, index)
@@ -59,22 +64,22 @@ class Exp_Main(Exp_Basic):
         model_optim = optim.Adam([{'params':self.model.parameters()}], lr=self.args.learning_rate)
         return model_optim
     
-    def _select_domain_optimizer(self):
-        domain_optim = optim.Adam([{'params':self.domain_classifier.parameters()}], lr=self.args.learning_rate)
-        return domain_optim
+    # def _select_domain_optimizer(self):
+    #     domain_optim = optim.Adam([{'params':self.domain_classifier.parameters()}], lr=self.args.learning_rate)
+    #     return domain_optim
 
     def _select_criterion(self):
         criterion = nn.MSELoss()
         return criterion
 
-    def _select_domain_criterion(self):
-        criterion = nn.BCEWithLogitsLoss()
-        return criterion
+    # def _select_domain_criterion(self):
+    #     criterion = nn.BCEWithLogitsLoss()
+    #     return criterion
 
     def vali(self, target_loader, source_vali_loaders, criterion):
         total_loss = []
         self.model.eval()
-        self.domain_classifier.eval()
+        # self.domain_classifier.eval()
 
         with torch.no_grad():
             for index in range(self.num_sources):
@@ -143,7 +148,7 @@ class Exp_Main(Exp_Basic):
                     i = i + 1
         total_loss = np.average(total_loss)
         self.model.train()
-        self.domain_classifier.train()
+        # self.domain_classifier.train()
         return total_loss
 
     def train(self, setting):
@@ -173,10 +178,10 @@ class Exp_Main(Exp_Basic):
         early_stopping = EarlyStopping(patience=self.args.patience, verbose=True)
 
         model_optim = self._select_optimizer()
-        domain_optim = self._select_domain_optimizer()
+        # domain_optim = self._select_domain_optimizer()
 
         criterion = self._select_criterion()
-        domain_criterion = self._select_domain_criterion()
+        # domain_criterion = self._select_domain_criterion()
 
         if self.args.use_amp:
             scaler = torch.cuda.amp.GradScaler()
@@ -192,7 +197,7 @@ class Exp_Main(Exp_Basic):
             train_loss = []
 
             self.model.train()
-            self.domain_classifier.train()
+            # self.domain_classifier.train()
             epoch_time = time.time()
 
             for index in range(self.num_sources):
@@ -203,7 +208,7 @@ class Exp_Main(Exp_Basic):
                 for batch_source, batch_target in zip(train_loader, target_loader):
                     iter_count += 1
                     model_optim.zero_grad()
-                    domain_optim.zero_grad()
+                    # domain_optim.zero_grad()
 
                     p = float(i + (index + epoch) * len(train_loader))/self.args.train_epochs/len(train_loader)
                     alpha = 2. / (1. + np.exp(-10 * p)) - 1
@@ -277,14 +282,22 @@ class Exp_Main(Exp_Basic):
                         batch_y = batch_y[:, :, :source_batch_x.shape[2]]
 
                         loss = criterion(outputs, batch_y)
-                        domain_outputs = self.domain_classifier(enc_x, alpha).to(self.device)
-                        domain_loss = domain_criterion(domain_outputs, domain_labels)
+                        # domain_outputs = self.domain_classifier(enc_x, alpha).to(self.device)
+                        # domain_loss = domain_criterion(domain_outputs, domain_labels)
+                        
+                        source_features = enc_x[:, :source_batch_x.shape[2], :]
+                        target_features = enc_x[:, source_batch_x.shape[2]:, :]
+
+                        coral_loss = self.coral(source_features, target_features)
+                        mmd_loss = self.mmd(source_features, target_features)
+                        cond_ent_loss = self.cond_ent(target_features)
+                        domain_loss = coral_loss + mmd_loss + cond_ent_loss
 
                     total_loss = loss + domain_loss
                     train_loss.append(loss.item())
 
                     if (i + 1) % 50 == 0:
-                        print("\titers: {0}, epoch: {1} | TST Loss: {2:.7f} | Domain Loss: {3:.7f}".format(i + 1, epoch + 1, loss.item(), domain_loss.item()))
+                        print("\titers: {0}, epoch: {1} | TST Loss: {2:.7f} | Domain Loss: {3:.7f} | CORAL: {4:.7f} | MMD: {5:.7f} | CCE: {6:.7f}".format(i + 1, epoch + 1, loss.item(), domain_loss.item(), coral_loss.item(), mmd_loss.item(), cond_ent_loss.item()))
                         speed = (time.time() - time_now) / iter_count
                         left_time = speed * ((self.args.train_epochs - epoch) * train_steps - i)
                         print('\tspeed: {:.4f}s/iter; left time: {:.4f}s'.format(speed, left_time))
@@ -298,7 +311,7 @@ class Exp_Main(Exp_Basic):
                     else:
                         total_loss.backward()
                         model_optim.step()
-                        domain_optim.step()
+                        # domain_optim.step()
                         
                     if self.args.lradj == 'TST':
                         adjust_learning_rate(model_optim, scheduler, epoch + 1, self.args, printout=False)
@@ -347,7 +360,7 @@ class Exp_Main(Exp_Basic):
             os.makedirs(folder_path)
 
         self.model.eval()
-        self.domain_classifier.eval()
+        # self.domain_classifier.eval()
         with torch.no_grad():
             for index in range(1):
                 print('Testing on source {}...'.format(index))
