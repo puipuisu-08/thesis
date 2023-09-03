@@ -41,9 +41,9 @@ do
       --patch_len 16\
       --stride 8\
       --des 'Exp' \
-      --train_epochs 100\
+      --train_epochs 50\
       --patience 10\
       --num_workers 10\
       --num_sources 1\
-      --itr 1 --batch_size 50 --learning_rate 0.0001
+      --itr 1 --batch_size 16 --learning_rate 0.0001
 done
