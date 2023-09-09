@@ -280,7 +280,7 @@ class Exp_Main(Exp_Basic):
                         domain_outputs = self.domain_classifier(enc_x, alpha).to(self.device)
                         domain_loss = domain_criterion(domain_outputs, domain_labels)
 
-                    total_loss = loss + domain_loss
+                    total_loss = loss * 5.1390077646202 + domain_loss * 2.943729820531079
                     train_loss.append(loss.item())
 
                     if (i + 1) % 50 == 0:
