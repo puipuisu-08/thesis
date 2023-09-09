@@ -11,6 +11,7 @@ class RevIN(nn.Module):
         :param affine: if True, RevIN has learnable affine parameters
         """
         super(RevIN, self).__init__()
+        exit()
         self.num_features = num_features
         self.eps = eps
         self.affine = affine
