@@ -10,8 +10,8 @@ model_name=PatchTST
 domain_classifier=DANN_Default
 
 root_path_name=/kaggle/input/patchtst-dataset/
-source_path_name=weather_saaleaue_750K.csv
-target_path_name=weather_beutenberg_250K.csv
+source_path_name=electricity_25K.csv
+target_path_name=weather_25K.csv
 model_id_name=v1
 data_name=custom
 
@@ -30,7 +30,7 @@ do
       --features M \
       --seq_len $seq_len \
       --pred_len $pred_len \
-      --enc_in 51 \
+      --enc_in 342 \
       --e_layers 3 \
       --n_heads 16 \
       --d_model 128 \
@@ -44,6 +44,7 @@ do
       --train_epochs 50\
       --patience 10\
       --num_workers 10\
-      --num_sources 3\
+      --num_sources 1\
+      --revin 0\
       --itr 1 --batch_size 16 --learning_rate 0.0001
 done
