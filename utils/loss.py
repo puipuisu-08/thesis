@@ -7,14 +7,14 @@ class CORAL(nn.Module):
     
     def forward(self, source, target):
         d = source.size(1)
-
+    
         # source covariance
         xm = torch.mean(source, 2, keepdim=True) - source
-        xc = xm.permute(0, 2, 1) @ xm
+        xc = xm @ xm.permute(0, 2, 1)
 
         # target covariance
         xmt = torch.mean(target, 2, keepdim=True) - target
-        xct = xmt.permute(0, 2, 1) @ xmt
+        xct = xmt @ xmt.permute(0, 2, 1)
 
         # frobenius norm between source and target
         loss = torch.mean(torch.mul((xc - xct), (xc - xct)))

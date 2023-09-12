@@ -285,6 +285,17 @@ class Exp_Main(Exp_Basic):
 
                         source_features = enc_x[:, :source_batch_x.shape[2], :]
                         target_features = enc_x[:, source_batch_x.shape[2]:, :]
+
+                        # Apply PCA on source features
+                        source_features = source_features.permute(0, 2, 1).reshape(self.args.batch_size * 128, source_batch_x.shape[2])
+                        q = target_features.shape[1]
+                        U, S, V = torch.pca_lowrank(source_features, q=q)
+
+                        # Step 3: Project data onto the top-21 principal components
+                        source_features = torch.mm(source_features, V[:, :q])
+
+                        # Step 4: Reshape back to the original format
+                        source_features = source_features.reshape(self.args.batch_size, 128, q).permute(0, 2, 1)
                         domain_loss = self.coral(source_features, target_features)
 
                     total_loss = loss + domain_loss

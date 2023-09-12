@@ -51,6 +51,10 @@ class PatchTST_backbone(nn.Module):
         self.head_type = head_type
         self.individual = individual
 
+        # Encoded Features
+        self.flatten = nn.Flatten(start_dim=-2)
+        self.linear = nn.Linear(self.head_nf, 128)
+
         if self.pretrain_head: 
             self.head = self.create_pretrain_head(self.head_nf, c_in, fc_dropout) # custom head passed as a partial func with all its kwargs
         elif head_type == 'flatten': 
@@ -73,6 +77,9 @@ class PatchTST_backbone(nn.Module):
         # model
         z = self.backbone(z)                                                                # z: [bs x nvars x d_model x patch_num]
         enc_x = z
+        enc_x = self.flatten(enc_x) # enc_x: [Batch, Channel, D_Model * Patch_Num]
+        enc_x = self.linear(enc_x) # enc_x: [Batch, Channel, 128]
+        
         z = self.head(z)                                                                    # z: [bs x nvars x target_window] 
         
         # denorm
