@@ -288,18 +288,30 @@ class Exp_Main(Exp_Basic):
                         source_features = enc_x[:, :source_batch_x.shape[2], :]
                         target_features = enc_x[:, source_batch_x.shape[2]:, :]
 
-                        # coral_loss = self.coral(source_features, target_features)
+                        # Apply PCA on source features
+                        source_features = source_features.permute(0, 2, 1).reshape(self.args.batch_size * 128, source_batch_x.shape[2])
+                        q = target_features.shape[1]
+                        U, S, V = torch.pca_lowrank(source_features, q=q)
+
+                        # Step 3: Project data onto the top-21 principal components
+                        source_features = torch.mm(source_features, V[:, :q])
+                        
+                        # Step 4: Reshape back to the original format
+                        source_features = source_features.reshape(self.args.batch_size, 128, q).permute(0, 2, 1) # [Batch Size, Features, 128]
+
+                        # Losses
+                        coral_loss = self.coral(source_features, target_features)
                         mmd_loss = self.mmd(source_features, target_features)
                         # cond_ent_loss = self.cond_ent(target_features)
                         # domain_loss = coral_loss + mmd_loss + cond_ent_loss
-                        domain_loss = mmd_loss
+                        domain_loss = mmd_loss + coral_loss
 
                     total_loss = loss + domain_loss
                     train_loss.append(loss.item())
 
                     if (i + 1) % 50 == 0:
-                        # print("\titers: {0}, epoch: {1} | TST Loss: {2:.7f} | Domain Loss: {3:.7f} | CORAL: {4:.7f} | MMD: {5:.7f} | CCE: {6:.7f}".format(i + 1, epoch + 1, loss.item(), domain_loss.item(), coral_loss.item(), mmd_loss.item(), cond_ent_loss.item()))
-                        print("\titers: {0}, epoch: {1} | TST Loss: {2:.7f} | Domain Loss: {3:.7f}".format(i + 1, epoch + 1, loss.item(), domain_loss.item()))
+                        print("\titers: {0}, epoch: {1} | TST Loss: {2:.7f} | Domain Loss: {3:.7f} | CORAL: {4:.7f} | MMD: {5:.7f}".format(i + 1, epoch + 1, loss.item(), domain_loss.item(), coral_loss.item(), mmd_loss.item()))
+                        # print("\titers: {0}, epoch: {1} | TST Loss: {2:.7f} | Domain Loss: {3:.7f}".format(i + 1, epoch + 1, loss.item(), domain_loss.item()))
                         speed = (time.time() - time_now) / iter_count
                         left_time = speed * ((self.args.train_epochs - epoch) * train_steps - i)
                         print('\tspeed: {:.4f}s/iter; left time: {:.4f}s'.format(speed, left_time))

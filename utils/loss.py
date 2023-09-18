@@ -25,9 +25,8 @@ class MMD_loss(nn.Module):
         batch_sz = int(source.size()[0])
         total_sum = []
         for i in range(batch_sz):
-            s = source[i, :, :].reshape(source.size()[1], source.size()[2])
-            t = target[i, :, :].reshape(target.size()[1], target.size()[2])
-
+            s = source[i, :, :].permute(1, 0)
+            t = target[i, :, :].permute(1, 0)
             n_samples = int(s.size()[0]) + int(t.size()[0])
             total = torch.cat([s, t], dim=0)
             total0 = total.unsqueeze(0).expand(
@@ -48,24 +47,24 @@ class MMD_loss(nn.Module):
         return sum(total_sum) / batch_sz
 
     def linear_mmd2(self, f_of_X, f_of_Y):
-            loss = 0.0
-            delta = f_of_X.float().mean(0) - f_of_Y.float().mean(0)
-            loss = delta.dot(delta.T)
-            return loss
+        loss = 0.0
+        delta = f_of_X.float().mean(0) - f_of_Y.float().mean(0)
+        loss = delta.dot(delta.T)
+        return loss
 
     def forward(self, source, target):
         if self.kernel_type == 'linear':
             return self.linear_mmd2(source, target)
         elif self.kernel_type == 'rbf':
-            source_feats = int(source.size()[1])
+            size = 128
             kernels = self.guassian_kernel(
                 source, target, kernel_mul=self.kernel_mul, kernel_num=self.kernel_num, fix_sigma=self.fix_sigma)
             
             with torch.no_grad():
-                XX = torch.mean(kernels[:source_feats, :source_feats])
-                YY = torch.mean(kernels[source_feats:, source_feats:])
-                XY = torch.mean(kernels[:source_feats, source_feats:])
-                YX = torch.mean(kernels[source_feats:, :source_feats])
+                XX = torch.mean(kernels[:size, :size])
+                YY = torch.mean(kernels[size:, size:])
+                XY = torch.mean(kernels[:size, size:])
+                YX = torch.mean(kernels[size:, :size])
                 loss = torch.mean(XX + YY - XY - YX)
             torch.cuda.empty_cache()
             return loss
@@ -74,17 +73,17 @@ class MMD_loss(nn.Module):
 class CORAL(nn.Module):
     def __init__(self):
         super(CORAL, self).__init__()
-
+    
     def forward(self, source, target):
         d = source.size(1)
-
+    
         # source covariance
         xm = torch.mean(source, 2, keepdim=True) - source
-        xc = xm.permute(0, 2, 1) @ xm
+        xc = xm @ xm.permute(0, 2, 1)
 
         # target covariance
         xmt = torch.mean(target, 2, keepdim=True) - target
-        xct = xmt.permute(0, 2, 1) @ xmt
+        xct = xmt @ xmt.permute(0, 2, 1)
 
         # frobenius norm between source and target
         loss = torch.mean(torch.mul((xc - xct), (xc - xct)))
