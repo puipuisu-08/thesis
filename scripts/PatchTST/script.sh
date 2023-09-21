@@ -45,6 +45,6 @@ do
       --patience 20\
       --num_workers 10\
       --num_sources 3\
-      --revin 1\
+      --revin 0\
       --itr 1 --batch_size 8 --learning_rate 0.0001
 done
