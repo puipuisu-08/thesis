@@ -276,9 +276,9 @@ class Exp_Main(Exp_Basic):
                         outputs = outputs[:, :, :source_batch_x.shape[2]]
                         batch_y = batch_y[:, :, :source_batch_x.shape[2]]
 
-                        loss = criterion(outputs, batch_y) * 5.1390077646202
+                        loss = criterion(outputs, batch_y)
                         domain_outputs = self.domain_classifier(enc_x, alpha).to(self.device)
-                        domain_loss = domain_criterion(domain_outputs, domain_labels) * 2.943729820531079
+                        domain_loss = domain_criterion(domain_outputs, domain_labels)
 
                     total_loss = loss + domain_loss
                     train_loss.append(loss.item())
