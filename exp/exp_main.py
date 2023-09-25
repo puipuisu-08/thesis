@@ -411,14 +411,14 @@ class Exp_Main(Exp_Basic):
                     target_outputs = outputs[:, :, source_batch_x.shape[2]:]
                     target_batch_y = batch_y[:, :, source_batch_x.shape[2]:]
 
-                    pred = target_outputs  # outputs.detach().cpu().numpy()  # .squeeze()
-                    true = target_batch_y  # batch_y.detach().cpu().numpy()  # .squeeze()
+                    pred = source_outputs  # outputs.detach().cpu().numpy()  # .squeeze()
+                    true = source_batch_y  # batch_y.detach().cpu().numpy()  # .squeeze()
 
                     preds.append(pred)
                     trues.append(true)
-                    inputx.append(target_batch_x.detach().cpu().numpy())
+                    inputx.append(source_batch_x.detach().cpu().numpy())
                     if i % 10 == 0:
-                        input = target_batch_x.detach().cpu().numpy()
+                        input = source_batch_x.detach().cpu().numpy()
                         gt = np.concatenate((input[0, :, -1], true[0, :, -1]), axis=0)
                         pd = np.concatenate((input[0, :, -1], pred[0, :, -1]), axis=0)
                         visual(gt, pd, os.path.join(folder_path, str(i) + '.pdf'))
