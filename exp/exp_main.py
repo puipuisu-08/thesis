@@ -279,7 +279,7 @@ class Exp_Main(Exp_Basic):
                         outputs = outputs[:, :, :source_batch_x.shape[2]]
                         batch_y = batch_y[:, :, :source_batch_x.shape[2]]
 
-                        loss = criterion(outputs, batch_y) * 0.1013209750429822
+                        loss = criterion(outputs, batch_y)
                         # domain_outputs = self.domain_classifier(enc_x, alpha).to(self.device)
                         # domain_loss = domain_criterion(domain_outputs, domain_labels)
 
@@ -296,7 +296,7 @@ class Exp_Main(Exp_Basic):
 
                         # Step 4: Reshape back to the original format
                         source_features = source_features.reshape(self.args.batch_size, 128, q).permute(0, 2, 1)
-                        domain_loss = self.coral(source_features, target_features) * 4.23035475456397
+                        domain_loss = self.coral(source_features, target_features)
 
                     total_loss = loss + domain_loss
                     train_loss.append(loss.item())
