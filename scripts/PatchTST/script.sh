@@ -9,7 +9,7 @@ seq_len=336
 model_name=PatchTST
 domain_classifier=DANN_Default
 
-root_path_name=./dataset/
+root_path_name=/kaggle/input/patchtst-dataset/
 source_path_name=traffic_15K_300.csv
 target_path_name=weather_15K.csv
 model_id_name=v1
