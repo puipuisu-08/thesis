@@ -20,7 +20,7 @@ for pred_len in 96
 do
     python -u run_longExp.py \
       --random_seed $random_seed \
-      --is_training 1 \
+      --is_training 0 \
       --root_path $root_path_name \
       --source_path $source_path_name \
       --target_path $target_path_name \
