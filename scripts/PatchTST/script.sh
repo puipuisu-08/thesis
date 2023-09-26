@@ -44,7 +44,7 @@ do
       --train_epochs 50\
       --patience 10\
       --num_workers 10\
-      --num_sources 3\
+      --num_sources 1\
       --revin 0\
       --itr 1 --batch_size 16 --learning_rate 0.0001
 done
