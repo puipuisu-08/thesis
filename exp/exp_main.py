@@ -308,7 +308,8 @@ class Exp_Main(Exp_Basic):
             print("Epoch: {} cost time: {}".format(epoch + 1, time.time() - epoch_time))
             train_loss = np.average(train_loss)
             vali_loss = self.vali(target_loader, source_vali_loaders, criterion)
-            test_loss = self.vali(target_loader, source_test_loaders, criterion)
+            # test_loss = self.vali(target_loader, source_test_loaders, criterion)
+            test_loss = 0
 
             print("Epoch: {0}, Steps: {1} | Train Loss: {2:.7f} Vali Loss: {3:.7f} Test Loss: {4:.7f}".format(
                 epoch + 1, train_steps, train_loss, vali_loss, test_loss))
