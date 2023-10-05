@@ -5,7 +5,7 @@ fi
 if [ ! -d "./logs/LongForecasting" ]; then
     mkdir ./logs/LongForecasting
 fi
-seq_len=336
+seq_len=168
 model_name=PatchTST
 domain_classifier=DANN_Default
 
@@ -16,7 +16,7 @@ model_id_name=v1
 data_name=custom
 
 random_seed=2021
-for pred_len in 96
+for pred_len in 48
 do
     python -u run_longExp.py \
       --random_seed $random_seed \
