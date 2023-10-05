@@ -5,22 +5,22 @@ fi
 if [ ! -d "./logs/LongForecasting" ]; then
     mkdir ./logs/LongForecasting
 fi
-seq_len=336
+seq_len=168
 model_name=PatchTST
 domain_classifier=DANN_Default
 
 root_path_name=/kaggle/input/patchtst-dataset/
-source_path_name=traffic_15K_300.csv
-target_path_name=weather_15K.csv
+source_path_name=electricity_25K.csv
+target_path_name=weather_1K.csv
 model_id_name=v1
 data_name=custom
 
 random_seed=2021
-for pred_len in 96
+for pred_len in 48
 do
     python -u run_longExp.py \
       --random_seed $random_seed \
-      --is_training 0 \
+      --is_training 1 \
       --root_path $root_path_name \
       --source_path $source_path_name \
       --target_path $target_path_name \
@@ -44,7 +44,7 @@ do
       --train_epochs 100\
       --patience 20\
       --num_workers 10\
-      --num_sources 1\
+      --num_sources 25\
       --revin 0\
       --itr 1 --batch_size 8 --learning_rate 0.0001
 done
