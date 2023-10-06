@@ -39,6 +39,7 @@ do
       --fc_dropout 0.2\
       --head_dropout 0\
       --patch_len 16\
+      --label_len 24\
       --stride 8\
       --des 'Exp' \
       --train_epochs 100\
